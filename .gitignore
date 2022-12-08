@@ -125,4 +125,5 @@ work_dirs/
 
 # file
 .DS_Store
+pths
 wandb
