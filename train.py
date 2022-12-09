@@ -71,7 +71,7 @@ def do_training(
         # Set the project where this run will be logged
         project="data-competition",
         # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
-        name=f"baseline",
+        name=f"jstest",
         # Track hyperparameters and run metadata
         config={
             "num_workers": 4,
