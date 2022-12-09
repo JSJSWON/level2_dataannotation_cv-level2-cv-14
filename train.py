@@ -1,19 +1,21 @@
+import math
 import os
 import os.path as osp
 import time
-import math
-from datetime import timedelta
 from argparse import ArgumentParser
+from datetime import timedelta
 
 import torch
+from dataset import SceneTextDataset
+from east_dataset import EASTDataset
+from model import EAST
+from seed_everything import _init_fn, seedEverything  # seed를 주는 부분
 from torch import cuda
-from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from east_dataset import EASTDataset
-from dataset import SceneTextDataset
-from model import EAST
+seedEverything(2022)  # seed를 주는 부분
 
 
 def parse_args():
@@ -67,7 +69,11 @@ def do_training(
     dataset = EASTDataset(dataset)
     num_batches = math.ceil(len(dataset) / batch_size)
     train_loader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        worker_init_fn=_init_fn,  # seed를 주는 부분
     )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -2,12 +2,14 @@ import json
 import os
 import os.path as osp
 from glob import glob
-from PIL import Image
 
 import numpy as np
+from PIL import Image
+from seed_everything import seedEverything  # seed를 주는 부분
+from torch.utils.data import ConcatDataset, DataLoader, Dataset
 from tqdm import tqdm
 
-from torch.utils.data import DataLoader, ConcatDataset, Dataset
+seedEverything(2022)  # seed를 주는 부분
 
 
 SRC_DATASET_DIR = "/data/datasets/ICDAR17_MLT"  # FIXME
