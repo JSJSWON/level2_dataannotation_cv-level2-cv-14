@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from datetime import timedelta
 
 import torch
+import wandb
 from dataset import SceneTextDataset
 from east_dataset import EASTDataset
 from model import EAST
@@ -16,6 +17,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 seedEverything(2022)  # seed를 주는 부분
+log_step = 10  # wandb logging을 할 step입니다. 예를 들어 10 step에 1번 로깅합니다.
 
 
 def parse_args():
@@ -63,6 +65,24 @@ def do_training(
     max_epoch,
     save_interval,
 ):
+    wandb.init(
+        # Set the team where this run will be logged
+        entity="level2_object-detection-cv14",
+        # Set the project where this run will be logged
+        project="data-competition",
+        # We pass a run name (otherwise it’ll be randomly assigned, like sunshine-lollypop-10)
+        name=f"baseline",
+        # Track hyperparameters and run metadata
+        config={
+            "num_workers": 4,
+            "image_size": 1024,
+            "input_size": 512,
+            "batch_size": 12,
+            "learning_rate": 1e-3,
+            "max_epoch": 200,
+            "save_interval": 5,
+        },
+    )
     dataset = SceneTextDataset(
         data_dir, split="train", image_size=image_size, crop_size=input_size
     )
@@ -88,7 +108,9 @@ def do_training(
     for epoch in range(max_epoch):
         epoch_loss, epoch_start = 0, time.time()
         with tqdm(total=num_batches) as pbar:
-            for img, gt_score_map, gt_geo_map, roi_mask in train_loader:
+            for step, (img, gt_score_map, gt_geo_map, roi_mask) in enumerate(
+                train_loader
+            ):
                 pbar.set_description("[Epoch {}]".format(epoch + 1))
 
                 loss, extra_info = model.train_step(
@@ -103,10 +125,16 @@ def do_training(
 
                 pbar.update(1)
                 val_dict = {
-                    "Cls loss": extra_info["cls_loss"],
-                    "Angle loss": extra_info["angle_loss"],
-                    "IoU loss": extra_info["iou_loss"],
+                    "train/Cls loss": extra_info["cls_loss"],
+                    "train/Angle loss": extra_info["angle_loss"],
+                    "train/IoU loss": extra_info["iou_loss"],
+                    "train/total loss": loss,
                 }
+                # Log metrics from your script to W&B
+                if step % log_step == 0:
+                    lr_dict = {"optimize/learning_rate": scheduler.get_last_lr()[0]}
+                    wandb.log(lr_dict)
+                    wandb.log(val_dict)
                 pbar.set_postfix(val_dict)
 
         scheduler.step()
@@ -123,6 +151,7 @@ def do_training(
 
             ckpt_fpath = osp.join(model_dir, "latest.pth")
             torch.save(model.state_dict(), ckpt_fpath)
+    wandb.finish()
 
 
 def main(args):
