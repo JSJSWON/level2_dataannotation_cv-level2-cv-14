@@ -149,7 +149,7 @@ def do_training(
             if not osp.exists(model_dir):
                 os.makedirs(model_dir)
 
-            ckpt_fpath = osp.join(model_dir, "latest.pth")
+            ckpt_fpath = osp.join(model_dir, f"latest_{epoch+1}.pth")
             torch.save(model.state_dict(), ckpt_fpath)
     wandb.finish()
 
