@@ -118,6 +118,7 @@ def do_training(
         optimizer, milestones=[max_epoch // 2], gamma=0.1
     )
 
+    mean_valid_loss = 999.0  # initialize mean valid loss
     for epoch in range(max_epoch):
         # train step
         model.train()
@@ -215,6 +216,13 @@ def do_training(
             # save latest.pth
             ckpt_fpath = osp.join(model_dir, "latest.pth")
             torch.save(model.state_dict(), ckpt_fpath)
+            # save best.pth
+            if (
+                mean_valid_loss > epoch_loss / valid_num_batches
+            ):  # 이번에 구한 mean val loss가 이전 값보다 더 작다면
+                mean_valid_loss = epoch_loss / valid_num_batches  # 이번에 구한 값으로 업데이트
+                ckpt_fpath = osp.join(model_dir, "best.pth")  # best model 저장
+                torch.save(model.state_dict(), ckpt_fpath)
 
     wandb.finish()
 
