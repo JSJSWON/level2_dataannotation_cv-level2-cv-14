@@ -27,7 +27,9 @@ def parse_args():
     parser.add_argument(
         "--data_dir",
         type=str,
-        default=os.environ.get("SM_CHANNEL_TRAIN", "../input/data/ICDAR17_Korean"),
+        default=os.environ.get(
+            "SM_CHANNEL_TRAIN", "../input/data/ICDAR17_Korean"
+        ),  # train.json, valid.json 파일이 모두 존재하는 경로로 변경
     )
     parser.add_argument(
         "--model_dir",
@@ -83,17 +85,29 @@ def do_training(
             "save_interval": 5,
         },
     )
-    dataset = SceneTextDataset(
+    train_dataset = SceneTextDataset(
         data_dir, split="train", image_size=image_size, crop_size=input_size
-    )
-    dataset = EASTDataset(dataset)
-    num_batches = math.ceil(len(dataset) / batch_size)
+    )  # data_dir/ufo/train.json 파일이 있어야함.
+    valid_dataset = SceneTextDataset(
+        data_dir, split="valid", image_size=image_size, crop_size=input_size
+    )  # data_dir/ufo/valid.json 파일이 있어야함.
+    train_dataset = EASTDataset(train_dataset)
+    valid_dataset = EASTDataset(valid_dataset)
+    train_num_batches = math.ceil(len(train_dataset) / batch_size)
+    valid_num_batches = math.ceil(len(valid_dataset) / batch_size)
     train_loader = DataLoader(
-        dataset,
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        worker_init_fn=_init_fn,  # seed를 주는 부분
+        worker_init_fn=_init_fn,
+    )
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        worker_init_fn=_init_fn,
     )
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -104,10 +118,11 @@ def do_training(
         optimizer, milestones=[max_epoch // 2], gamma=0.1
     )
 
-    model.train()
     for epoch in range(max_epoch):
+        # train step
+        model.train()
         epoch_loss, epoch_start = 0, time.time()
-        with tqdm(total=num_batches) as pbar:
+        with tqdm(total=train_num_batches) as pbar:
             for step, (img, gt_score_map, gt_geo_map, roi_mask) in enumerate(
                 train_loader
             ):
@@ -128,7 +143,7 @@ def do_training(
                     "train/Cls loss": extra_info["cls_loss"],
                     "train/Angle loss": extra_info["angle_loss"],
                     "train/IoU loss": extra_info["iou_loss"],
-                    "train/total loss": loss,
+                    "train/total loss": loss_val,
                 }
                 # Log metrics from your script to W&B
                 if step % log_step == 0:
@@ -136,21 +151,71 @@ def do_training(
                     wandb.log(lr_dict)
                     wandb.log(val_dict)
                 pbar.set_postfix(val_dict)
-
+        # 한 epoch 종료 시
         scheduler.step()
+        print(
+            "Mean loss: {:.4f} | Elapsed time: {}".format(
+                epoch_loss / train_num_batches,
+                timedelta(seconds=time.time() - epoch_start),
+            )
+        )
+
+        # validation step
+        model.eval()
+        epoch_loss, epoch_cls_loss, epoch_angle_loss, epoch_iou_loss, epoch_start = (
+            0,
+            0,
+            0,
+            0,
+            time.time(),
+        )
+        with tqdm(total=valid_num_batches) as pbar:
+            for step, (img, gt_score_map, gt_geo_map, roi_mask) in enumerate(
+                valid_loader
+            ):
+                pbar.set_description("[Epoch {}]".format(epoch + 1))
+
+                loss, extra_info = model.train_step(
+                    img, gt_score_map, gt_geo_map, roi_mask
+                )
+                loss_val = loss.item()
+                epoch_loss += loss_val  # total loss 누적
+                epoch_cls_loss += extra_info["cls_loss"]  # cls loss 누적
+                epoch_angle_loss += extra_info["angle_loss"]  # angle loss 누적
+                epoch_iou_loss += extra_info["iou_loss"]  # iou loss 누적
+
+                pbar.update(1)
+                val_dict = {
+                    "valid/Cls loss": extra_info["cls_loss"],
+                    "valid/Angle loss": extra_info["angle_loss"],
+                    "valid/IoU loss": extra_info["iou_loss"],
+                    "valid/total loss": loss_val,
+                }
+                pbar.set_postfix(val_dict)
+
+        # epoch 종료 후
+        val_dict = {
+            "valid/Cls loss": epoch_cls_loss / valid_num_batches,  # 평균 cls loss
+            "valid/Angle loss": epoch_angle_loss / valid_num_batches,  # 평균 angle loss
+            "valid/IoU loss": epoch_iou_loss / valid_num_batches,  # 평균 iou loss
+            "valid/total loss": epoch_loss / valid_num_batches,  # 평균 total loss
+        }
+        wandb.log(val_dict)
 
         print(
             "Mean loss: {:.4f} | Elapsed time: {}".format(
-                epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)
+                epoch_loss / valid_num_batches,
+                timedelta(seconds=time.time() - epoch_start),
             )
         )
 
         if (epoch + 1) % save_interval == 0:
             if not osp.exists(model_dir):
                 os.makedirs(model_dir)
-
+            # save latest.pth
             ckpt_fpath = osp.join(model_dir, "latest.pth")
             torch.save(model.state_dict(), ckpt_fpath)
+
     wandb.finish()
 
 
