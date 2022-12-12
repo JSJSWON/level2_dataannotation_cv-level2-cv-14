@@ -10,6 +10,7 @@ from PIL import Image
 from seed_everything import seedEverything  # seed를 주는 부분
 from shapely.geometry import Polygon
 from torch.utils.data import Dataset
+from my_straug import my_aug
 
 seedEverything(2022)  # seed를 주는 부분
 
@@ -403,7 +404,9 @@ class SceneTextDataset(Dataset):
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
         image, vertices = crop_img(image, vertices, labels, self.crop_size)
-
+        # image.save("./A.png")
+        image = my_aug(image)
+        # image.save("./B.png")
         if image.mode != "RGB":
             image = image.convert("RGB")
         image = np.array(image)
