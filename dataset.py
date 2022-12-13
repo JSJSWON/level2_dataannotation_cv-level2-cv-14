@@ -10,6 +10,7 @@ from PIL import Image
 from seed_everything import seedEverything  # seed를 주는 부분
 from shapely.geometry import Polygon
 from torch.utils.data import Dataset
+from random import randint
 
 seedEverything(2022)  # seed를 주는 부분
 
@@ -290,6 +291,15 @@ def resize_img(img, vertices, size):
     return img, new_vertices
 
 
+def resize_img_ratio(img, vertices, ratio_list):
+    h, w = img.height, img.width
+    idx = randint(0, len(ratio_list)-1)
+    ratio = ratio_list[idx]
+    img = img.resize((int(w * ratio), int(h * ratio)), Image.BILINEAR)
+    new_vertices = vertices * ratio
+    return img, new_vertices
+
+
 def adjust_height(img, vertices, ratio=0.2):
     """adjust height of image to aug data
     Input:
@@ -399,7 +409,8 @@ class SceneTextDataset(Dataset):
         )
 
         image = Image.open(image_fpath)
-        image, vertices = resize_img(image, vertices, self.image_size)
+        # image, vertices = resize_img(image, vertices, self.image_size)
+        image, vertices = resize_img_ratio(image, vertices, [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2])
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
         image, vertices = crop_img(image, vertices, labels, self.crop_size)
