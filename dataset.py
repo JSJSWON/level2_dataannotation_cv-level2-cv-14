@@ -405,11 +405,8 @@ class SceneTextDataset(Dataset):
         image, vertices = rotate_img(image, vertices)
         image, vertices = crop_img(image, vertices, labels, self.crop_size)
         # image.save("./A.png")
-        image = my_aug(image)
+        image = my_aug(image, vertices)
         # image.save("./B.png")
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        image = np.array(image)
 
         funcs = []
         if self.color_jitter:
