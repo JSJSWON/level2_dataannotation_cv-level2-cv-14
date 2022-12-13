@@ -409,8 +409,8 @@ class SceneTextDataset(Dataset):
         )
 
         image = Image.open(image_fpath)
-        # image, vertices = resize_img(image, vertices, self.image_size)
-        image, vertices = resize_img_ratio(image, vertices, [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2])
+        image, vertices = resize_img(image, vertices, self.image_size)
+        image, vertices = resize_img_ratio(image, vertices, [1.0, 0.9, 0.8, 0.7, 0.6, 0.5])
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
         image, vertices = crop_img(image, vertices, labels, self.crop_size)
