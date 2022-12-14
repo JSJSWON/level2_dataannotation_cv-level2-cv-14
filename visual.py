@@ -75,7 +75,7 @@ def main(
 
     with tab2:
         checkpoint = st.selectbox(
-            "model의 checkpoint를 골라주세요.", os.listdir(CHECKPOINT_DIR)
+            "model의 checkpoint를 골라주세요.", sorted(os.listdir(CHECKPOINT_DIR))
         )
         if "checkpoint" not in st.session_state:
             st.session_state.checkpoint = checkpoint
