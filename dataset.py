@@ -243,7 +243,12 @@ def crop_img(img, vertices, labels, length):
         cnt += 1
         start_w = int(np.random.rand() * remain_w)
         start_h = int(np.random.rand() * remain_h)
-        flag = is_cross_text([start_w, start_h], length, new_vertices[labels == 1, :])
+        # if new_vertices.ndim == 2 and labels.ndim == 1:
+        # flag = is_cross_text([start_w, start_h], length, new_vertices[labels == 1, :])
+        if new_vertices.ndim == 2 and labels.ndim == 1:
+            flag = is_cross_text(
+                [start_w, start_h], length, new_vertices[labels == 1, :]
+            )
     box = (start_w, start_h, start_w + length, start_h + length)
     region = img.crop(box)
     if new_vertices.size == 0:
@@ -387,9 +392,13 @@ class SceneTextDataset(Dataset):
         image_fpath = osp.join(self.image_dir, image_fname)
 
         vertices, labels = [], []
+        # for word_info in self.anno["images"][image_fname]["words"].values():
+        #     vertices.append(np.array(word_info["points"]).flatten())
+        #     labels.append(int(not word_info["illegibility"]))
         for word_info in self.anno["images"][image_fname]["words"].values():
-            vertices.append(np.array(word_info["points"]).flatten())
-            labels.append(int(not word_info["illegibility"]))
+            if len(np.array(word_info["points"]).flatten()) == 8:
+                vertices.append(np.array(word_info["points"]).flatten())
+                labels.append(int(not word_info["illegibility"]))
         vertices, labels = np.array(vertices, dtype=np.float32), np.array(
             labels, dtype=np.int64
         )
