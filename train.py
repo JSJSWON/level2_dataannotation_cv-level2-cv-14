@@ -284,6 +284,8 @@ def do_training(
 
             ckpt_fpath = osp.join(model_dir, f"{wandb.run.name}_{epoch+1}.pth")
             torch.save(model.state_dict(), ckpt_fpath)
+            ckpt_fpath = osp.join(model_dir, "latest.pth")
+            torch.save(model.state_dict(), ckpt_fpath)
         recall, precision, f1 = evaluate()
         print(f"recall: {recall} | precision: {precision} | fl-score: {f1}")
     wandb.finish()
