@@ -1,16 +1,18 @@
+import json
 import os
 import os.path as osp
-import json
 from argparse import ArgumentParser
 from glob import glob
 
-import torch
 import cv2
-from torch import cuda
+import torch
+from detect import detect
 from model import EAST
+from seed_everything import seedEverything  # seed를 주는 부분
+from torch import cuda
 from tqdm import tqdm
 
-from detect import detect
+seedEverything(2022)  # seed를 주는 부분
 
 
 CHECKPOINT_EXTENSIONS = [".pth", ".ckpt"]
