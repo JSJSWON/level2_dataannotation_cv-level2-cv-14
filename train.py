@@ -213,8 +213,8 @@ def do_training(
         if (epoch + 1) % save_interval == 0:
             if not osp.exists(model_dir):
                 os.makedirs(model_dir)
-            # save latest.pth
-            ckpt_fpath = osp.join(model_dir, "latest.pth")
+
+            ckpt_fpath = osp.join(model_dir, f"{wandb.run.name}_{epoch+1}.pth")
             torch.save(model.state_dict(), ckpt_fpath)
             # save best.pth
             if (
