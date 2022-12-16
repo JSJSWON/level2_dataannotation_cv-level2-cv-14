@@ -7,7 +7,7 @@ from datetime import timedelta
 
 import torch
 import wandb
-from dataset import SceneTextDataset
+from dataset import SceneTextDataset, SceneTextRandResizeDataset
 from east_dataset import EASTDataset
 from model import EAST
 from seed_everything import _init_fn, seedEverything  # seed를 주는 부분
@@ -83,9 +83,14 @@ def do_training(
             "save_interval": 5,
         },
     )
+    # Baiseline Dataset
     dataset = SceneTextDataset(
         data_dir, split="train", image_size=image_size, crop_size=input_size
     )
+    # Random Ratio Resize Dataset
+    # dataset = SceneTextRandResizeDataset(
+    #     data_dir, split="train", image_size=image_size, crop_size=input_size
+    # )
     dataset = EASTDataset(dataset)
     num_batches = math.ceil(len(dataset) / batch_size)
     train_loader = DataLoader(
