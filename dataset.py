@@ -10,6 +10,7 @@ from PIL import Image
 from seed_everything import seedEverything  # seed를 주는 부분
 from shapely.geometry import Polygon
 from torch.utils.data import Dataset
+from random import randint
 
 seedEverything(2022)  # seed를 주는 부분
 
@@ -290,6 +291,15 @@ def resize_img(img, vertices, size):
     return img, new_vertices
 
 
+def resize_img_ratio(img, vertices, ratio_list):
+    h, w = img.height, img.width
+    idx = randint(0, len(ratio_list)-1)
+    ratio = ratio_list[idx]
+    img = img.resize((int(w * ratio), int(h * ratio)), Image.BILINEAR)
+    new_vertices = vertices * ratio
+    return img, new_vertices
+
+
 def adjust_height(img, vertices, ratio=0.2):
     """adjust height of image to aug data
     Input:
@@ -400,6 +410,71 @@ class SceneTextDataset(Dataset):
 
         image = Image.open(image_fpath)
         image, vertices = resize_img(image, vertices, self.image_size)
+        image, vertices = adjust_height(image, vertices)
+        image, vertices = rotate_img(image, vertices)
+        image, vertices = crop_img(image, vertices, labels, self.crop_size)
+
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+        image = np.array(image)
+
+        funcs = []
+        if self.color_jitter:
+            funcs.append(A.ColorJitter(0.5, 0.5, 0.5, 0.25))
+        if self.normalize:
+            funcs.append(A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+        transform = A.Compose(funcs)
+
+        image = transform(image=image)["image"]
+        word_bboxes = np.reshape(vertices, (-1, 4, 2))
+        roi_mask = generate_roi_mask(image, vertices, labels)
+
+        return image, word_bboxes, roi_mask
+
+
+# Add Random Ratio Resize
+class SceneTextRandResizeDataset(Dataset):
+    def __init__(
+        self,
+        root_dir,
+        split="train",
+        image_size=1024,
+        crop_size=512,
+        color_jitter=True,
+        normalize=True,
+    ):
+        with open(osp.join(root_dir, "ufo/{}.json".format(split)), "r") as f:
+            anno = json.load(f)
+
+        self.anno = anno
+        self.image_fnames = sorted(anno["images"].keys())
+        self.image_dir = osp.join(root_dir, "images")
+
+        self.image_size, self.crop_size = image_size, crop_size
+        self.color_jitter, self.normalize = color_jitter, normalize
+
+    def __len__(self):
+        return len(self.image_fnames)
+
+    def __getitem__(self, idx):
+        image_fname = self.image_fnames[idx]
+        image_fpath = osp.join(self.image_dir, image_fname)
+
+        vertices, labels = [], []
+        for word_info in self.anno["images"][image_fname]["words"].values():
+            vertices.append(np.array(word_info["points"]).flatten())
+            labels.append(int(not word_info["illegibility"]))
+        vertices, labels = np.array(vertices, dtype=np.float32), np.array(
+            labels, dtype=np.int64
+        )
+
+        vertices, labels = filter_vertices(
+            vertices, labels, ignore_under=10, drop_under=1
+        )
+
+        image = Image.open(image_fpath)
+        image, vertices = resize_img(image, vertices, self.image_size)
+        image, vertices = resize_img_ratio(image, vertices, [1.0, 0.9, 0.8, 0.7, 0.6, 0.5])
         image, vertices = adjust_height(image, vertices)
         image, vertices = rotate_img(image, vertices)
         image, vertices = crop_img(image, vertices, labels, self.crop_size)

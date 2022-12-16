@@ -7,7 +7,7 @@ from datetime import timedelta
 
 import torch
 import wandb
-from dataset import SceneTextDataset
+from dataset import SceneTextDataset, SceneTextRandResizeDataset
 from east_dataset import EASTDataset
 from model import EAST
 from seed_everything import _init_fn, seedEverything  # seed를 주는 부분
@@ -85,9 +85,11 @@ def do_training(
             "save_interval": 5,
         },
     )
-    train_dataset = SceneTextDataset(
+    # Random Ratio Resize Dataset
+    train_dataset = SceneTextRandResizeDataset(
         data_dir, split="train", image_size=image_size, crop_size=input_size
     )  # data_dir/ufo/train.json 파일이 있어야함.
+    # Baiseline Dataset
     valid_dataset = SceneTextDataset(
         data_dir, split="valid", image_size=image_size, crop_size=input_size
     )  # data_dir/ufo/valid.json 파일이 있어야함.
