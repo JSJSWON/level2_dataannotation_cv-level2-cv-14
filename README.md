@@ -26,7 +26,7 @@
 - **Output:** bbox 좌표가 포함된 json 파일 (Upstage Format for OCR)
 - **평가 방법**: DetEval
 
-<img width="100%" src="./images/프로젝트개요(흰 배경).png"/>
+<img width="50%" src="./images/프로젝트개요(흰 배경).png"/>
 
 
 
@@ -55,7 +55,7 @@
     - detect.py
 
 ### Data & EDA
-<img width="100%" src="./images/EDA1.png"/>
+<img width="50%" src="./images/EDA1.png"/>
 
 - 라벨링
     - 단어 사이의 띄어쓰기 기준
@@ -104,7 +104,7 @@ batch size는 12 → 24로 키웠을 때 더 빠른 속도로 학습할 수 있�
 - **Custom Cosine Warm up Restart Scheduler**
     - cosine annealing scheduler에 warm up 단계 추가
     - 반복되는 주기마다 learning rate 줄임
-<img width="100%" src="./images/cosine_scheduler.png"/>
+<img width="50%" src="./images/cosine_scheduler.png"/>
 실험 결과 기존 multi-step lr scheulder를 사용했던 baseline에 비해 F1 score가 향상되는 유의미한 결과를 얻을 수 있었다.
 
 |  | F1 | Recall | Precision | max_lr |
