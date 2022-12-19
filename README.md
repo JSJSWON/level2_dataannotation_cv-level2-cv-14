@@ -45,7 +45,7 @@
 | :---: | :---: |
 | 12.05 ~ 12.09 | OCR 이론 학습, data annotation 제작 및 수집, 기능 개발
 | 12.10 ~ 12.14 | model 실험 및 기능 개발
-| 11.14 ~ 12.15 | fine tuning
+| 12.14 ~ 12.15 | fine tuning
 ---
 ## Model
 - Fix
