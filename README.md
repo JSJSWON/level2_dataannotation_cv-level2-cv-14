@@ -26,7 +26,7 @@
 - **Output:** bbox 좌표가 포함된 json 파일 (Upstage Format for OCR)
 - **평가 방법**: DetEval
 
-<img width="100%" src="./images/프로젝트개요(흰 ).png"/>
+<img width="100%" src="./images/프로젝트개요(흰 배경).png"/>
 
 
 
